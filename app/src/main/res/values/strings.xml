@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">StudySync SA</string>
+    <string name="greeting_morning">Good Morning</string>
+    <string name="greeting_afternoon">Good Afternoon</string>
+    <string name="greeting_evening">Good Evening</string>
+    <string name="lang_en">English</string>
+    <string name="lang_xh">isiXhosa</string>
+    <string name="lang_af">Afrikaans</string>
+    <string name="sync_status_synced">All changes synced</string>
+    <string name="sync_status_pending">Waiting to sync</string>
+    <string name="sync_status_failed">Sync failed</string>
+</resources>
