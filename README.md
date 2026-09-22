@@ -1,121 +1,36 @@
-Purpose
+# StudySync SA
 
-StudySync SA is designed to help college and university students manage academic modules, tasks, notes, deadlines, reminders and study progress in one mobile workspace.
+StudySync SA is a modern Android application designed for students to manage their tasks and notes efficiently. The app provides a seamless user experience with offline support, secure authentication, and real-time synchronization.
 
-Design and technology
+## Features
 
-The project design carries forward the Part 1 architecture:
+- **Task Management**: Create, view, and manage daily study tasks.
+- **Notes**: Organize thoughts and study materials with a dedicated notes section.
+- **Authentication**: Secure user access (integrated with Firebase).
+- **Offline First**: Built with Room persistence to ensure data is available without internet.
+- **Dynamic Theming**: Supports Light, Dark, and System-based Material 3 themes.
+- **Background Sync**: Uses WorkManager to keep data synchronized with the backend.
 
-Android client: Kotlin, Android Studio and Jetpack Compose
+## Tech Stack
 
-Authentication: Firebase Authentication, including Google sign-in
+- **UI**: [Jetpack Compose](https://developer.android.com/jetpack/compose) for a modern, declarative UI.
+- **Navigation**: [Jetpack Navigation](https://developer.android.com/guide/navigation) for Compose.
+- **Architecture**: MVVM (Model-View-ViewModel) pattern.
+- **Database**: [Room](https://developer.android.com/training/data-storage/room) for local data persistence.
+- **Networking**: [Retrofit](https://square.github.io/retrofit/) & OkHttp for API communication.
+- **Serialization**: Kotlinx Serialization.
+- **Background Tasks**: [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) for data synchronization.
+- **Dependency Management**: Gradle with Version Catalog.
 
-Local persistence: Room over SQLite
+## Getting Started
 
-Background work: WorkManager
+### Prerequisites
 
-Backend: Kotlin/Ktor REST API, JSON endpoints under /api/v1
+- Android Studio Koala or newer.
+- Android SDK 34+.
+- Kotlin 2.0.0+.
 
-Server database: PostgreSQL
+### Installation
 
-Push notifications: Firebase Cloud Messaging (FCM)
-
-Languages: English, isiXhosa and Afrikaans
-
-Main screens
-
-Home: today’s priorities, weekly progress and synchronisation status
-
-Tasks: module-linked tasks, priority, due date, reminders and completion
-
-Notes: module-linked notes, labels and search
-
-Profile/Settings: language, theme, notification preferences and study goals
-
-Key functionality
-
-Planned prototype flows include registration/login, Google SSO, settings, module/task/note management, REST connectivity, offline-first edits with a pending sync queue, and selected progress/reminder features.
-
-Offline synchronisation design
-
-Save task/note changes to Room immediately.
-
-Queue offline operations as PENDING.
-
-Use WorkManager to process the queue when connectivity returns.
-
-Send operations to POST /api/v1/sync.
-
-Authenticate and validate ownership/version on the server.
-
-Mark successful operations SYNCED; retry temporary failures and report permanent errors.
-
-Show Synced, Waiting to sync or Sync failed in the UI.
-
-Security
-
-Firebase Authentication is responsible for credentials. Plaintext passwords must never be stored in the app database or backend. API traffic must use HTTPS and authenticated requests; the server must enforce ownership checks. Tokens and diagnostic logs must be handled without exposing secrets.
-
-API outline
-
-Method
-
-Endpoint
-
-Purpose
-
-POST
-
-/api/v1/profile
-
-Create/update profile
-
-GET / POST
-
-/api/v1/modules
-
-List/create modules
-
-PUT
-
-/api/v1/modules/{id}
-
-Update module
-
-GET / POST
-
-/api/v1/tasks
-
-List/create tasks
-
-PUT / DELETE
-
-/api/v1/tasks/{id}
-
-Update/delete task
-
-GET / POST
-
-/api/v1/notes
-
-List/create notes
-
-PUT
-
-/api/v1/notes/{id}
-
-Update note
-
-POST
-
-/api/v1/sync
-
-Upload queued offline operations
-
-Testing and GitHub Actions
-
-Automated tests should cover input validation, data/repository operations, queue status transitions, retry/conflict handling and important ViewModel logic. UI tests should cover authentication, task/note workflows, offline-to-online synchronisation and settings. Configure GitHub Actions to run tests and assemble the Android app on pushes and pull requests.
-
-
-
-
+1. Clone the repository:
+   
