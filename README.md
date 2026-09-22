@@ -33,4 +33,26 @@ StudySync SA is a modern Android application designed for students to manage the
 ### Installation
 
 1. Clone the repository:
-   
+2. Open the project in Android Studio.
+3. Sync the project with Gradle files.
+4. (Optional) Set up your `google-services.json` in the `app/` directory if Firebase features are enabled.
+5. Build and run the app on an emulator or physical device.
+
+## Project Structure
+
+- `data/`: Contains the local database (Room), API services (Retrofit), and Repository implementations.
+- `ui/`: Contains Compose screens, reusable components, and theme definitions.
+- `viewmodel/`: Contains ViewModels that hold UI state and interact with the Repository.
+- `navigation/`: Defines the app's navigation graph and destinations.
+
+## Contributing
+
+1. Fork the Project.
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the Branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
