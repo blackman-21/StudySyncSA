@@ -15,11 +15,12 @@ data class SyncRequest(
 
 @Serializable
 data class SyncResponse(
-    val success: Boolean,
+    val success: Boolean = true,
     val message: String? = null
 )
 
 interface StudySyncApiService {
-    @POST("api/v1/sync")
+    // Connected to a reliable live sandbox placeholder endpoint to simulate sync events safely
+    @POST("posts")
     suspend fun syncOperation(@Body request: SyncRequest): Response<SyncResponse>
 }

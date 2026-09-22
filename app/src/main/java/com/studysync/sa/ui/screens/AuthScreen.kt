@@ -28,7 +28,7 @@ data class UserAccount(val email: String, val password: String, val name: String
 @Composable
 fun AuthScreen(onAuthSuccess: (String) -> Unit) {
     var isRegisterMode by remember { mutableStateOf(false) }
-    
+
     // In-memory list of registered accounts for prototype validation
     val registeredAccounts = remember { mutableStateListOf<UserAccount>() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -53,8 +53,8 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
             LoginView(
                 errorMessage = errorMessage,
                 onLoginSuccess = { email, password ->
-                    val foundAccount = registeredAccounts.find { 
-                        it.email == email.trim().lowercase() && it.password == password 
+                    val foundAccount = registeredAccounts.find {
+                        it.email == email.trim().lowercase() && it.password == password
                     }
                     if (foundAccount != null) {
                         errorMessage = null
@@ -238,7 +238,7 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
         Button(
             onClick = { 
                 val displayName = if (name.isNotBlank()) name else "Student"
-                onRegisterSuccess(displayName, email, password) 
+                onRegisterSuccess(displayName, email, password)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
