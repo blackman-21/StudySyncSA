@@ -35,7 +35,6 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            // Theme selection state: "System", "Light", or "Dark"
             var appThemeSetting by remember { mutableStateOf("System") }
             val darkTheme = when (appThemeSetting) {
                 "Light" -> false
@@ -73,10 +72,13 @@ fun MainApp(
         override fun <T : ViewModel> create(modelClass: Class<T>): T = NoteViewModel(repository) as T
     })
 
+    var showWelcomeScreen by remember { mutableStateOf(true) }
     var isAuthenticated by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("Student") }
 
-    if (!isAuthenticated) {
+    if (showWelcomeScreen) {
+        WelcomeScreen(onGetStarted = { showWelcomeScreen = false })
+    } else if (!isAuthenticated) {
         AuthScreen(onAuthSuccess = { name ->
             userName = name
             isAuthenticated = true
