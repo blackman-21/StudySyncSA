@@ -118,6 +118,4 @@ Automated tests should cover input validation, data/repository operations, queue
 
 
 
-AI-use disclosure
 
-If AI tools were used, add an accurate disclosure (maximum 500 words) explaining what they assisted with, what you reviewed or changed, and citations required by the assessment. Remove this section only if it is not applicable.
