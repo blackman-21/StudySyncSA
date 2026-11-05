@@ -13,12 +13,20 @@ import kotlinx.coroutines.tasks.await
  */
 class NoSqlSyncManager {
     private val tag = "NoSqlSyncManager"
-    private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    private val firestore: FirebaseFirestore? by lazy {
+        try {
+            FirebaseFirestore.getInstance()
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to initialize Firebase Firestore", e)
+            null
+        }
+    }
 
     /**
      * Stores a task document in NoSQL Firestore database under collection 'tasks'.
      */
     suspend fun saveTask(task: TaskEntity): Boolean {
+        val fs = firestore ?: return false
         return try {
             val taskMap = hashMapOf(
                 "id" to task.id,
@@ -30,7 +38,7 @@ class NoSqlSyncManager {
                 "completed" to task.completed,
                 "updatedAt" to System.currentTimeMillis()
             )
-            firestore.collection("tasks").document(task.id)
+            fs.collection("tasks").document(task.id)
                 .set(taskMap, SetOptions.merge()).await()
             Log.d(tag, "Successfully saved task ${task.id} to NoSQL DB")
             true
@@ -44,8 +52,9 @@ class NoSqlSyncManager {
      * Reads all task documents from NoSQL Firestore database.
      */
     suspend fun fetchTasks(): List<TaskEntity> {
+        val fs = firestore ?: return emptyList()
         return try {
-            val snapshot = firestore.collection("tasks").get().await()
+            val snapshot = fs.collection("tasks").get().await()
             snapshot.documents.mapNotNull { doc ->
                 val id = doc.getString("id") ?: doc.id
                 val moduleId = doc.getString("moduleId") ?: ""
@@ -66,6 +75,7 @@ class NoSqlSyncManager {
      * Stores a note document in NoSQL Firestore database under collection 'notes'.
      */
     suspend fun saveNote(note: NoteEntity): Boolean {
+        val fs = firestore ?: return false
         return try {
             val noteMap = hashMapOf(
                 "id" to note.id,
@@ -75,7 +85,7 @@ class NoSqlSyncManager {
                 "attachmentUrl" to note.attachmentUrl,
                 "updatedAt" to note.updatedAt
             )
-            firestore.collection("notes").document(note.id)
+            fs.collection("notes").document(note.id)
                 .set(noteMap, SetOptions.merge()).await()
             Log.d(tag, "Successfully saved note ${note.id} to NoSQL DB")
             true
@@ -89,8 +99,9 @@ class NoSqlSyncManager {
      * Reads all note documents from NoSQL Firestore database.
      */
     suspend fun fetchNotes(): List<NoteEntity> {
+        val fs = firestore ?: return emptyList()
         return try {
-            val snapshot = firestore.collection("notes").get().await()
+            val snapshot = fs.collection("notes").get().await()
             snapshot.documents.mapNotNull { doc ->
                 val id = doc.getString("id") ?: doc.id
                 val moduleId = doc.getString("moduleId") ?: ""

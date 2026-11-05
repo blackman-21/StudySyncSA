@@ -3,6 +3,7 @@ package com.studysync.sa.ui.screens
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
@@ -28,26 +29,27 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.studysync.sa.R
+import com.studysync.sa.data.local.entity.UserEntity
+import com.studysync.sa.data.remote.BlobStorageManager
+import com.studysync.sa.data.remote.RealtimeDbManager
+import com.studysync.sa.data.repository.StudySyncRepository
 import com.studysync.sa.util.PasswordEncoder
 import com.studysync.sa.util.SsoManager
 import com.studysync.sa.util.SsoUser
-
-data class UserAccount(
-    val email: String,
-    val passwordHash: String,
-    val salt: String,
-    val name: String,
-    val surname: String = "",
-    val profileBitmap: Bitmap? = null
-)
+import kotlinx.coroutines.launch
+import java.io.File
+import java.util.UUID
 
 @Composable
-fun AuthScreen(onAuthSuccess: (name: String, surname: String, email: String, bitmap: Bitmap?) -> Unit) {
+fun AuthScreen(
+    repository: StudySyncRepository,
+    onAuthSuccess: (name: String, surname: String, email: String, bitmap: Bitmap?) -> Unit
+) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val blobStorageManager = remember { BlobStorageManager(context) }
+    val realtimeDbManager = remember { RealtimeDbManager() }
     var isRegisterMode by remember { mutableStateOf(false) }
-
-    // In-memory credential registry with salted password hashes
-    val registeredAccounts = remember { mutableStateListOf<UserAccount>() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val ssoManager = remember { SsoManager(context) }
 
@@ -68,17 +70,63 @@ fun AuthScreen(onAuthSuccess: (name: String, surname: String, email: String, bit
                         return@RegisterView
                     }
 
+                    val cleanEmail = email.trim().lowercase()
                     val salt = PasswordEncoder.generateSalt()
                     val hash = PasswordEncoder.hashPassword(password, salt)
-                    val account = UserAccount(email.trim().lowercase(), hash, salt, name, surname, bitmap)
-                    registeredAccounts.add(account)
-                    errorMessage = null
-                    onAuthSuccess(if (name.isNotBlank()) name else "Student", surname, email, bitmap)
+
+                    val avatarPath = if (bitmap != null) {
+                        try {
+                            val bytes = blobStorageManager.bitmapToBytes(bitmap)
+                            blobStorageManager.saveLocalBlob("profile_${System.currentTimeMillis()}.jpg", bytes)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+
+                    val newUser = UserEntity(
+                        id = UUID.randomUUID().toString(),
+                        name = if (name.isNotBlank()) name else "Student",
+                        surname = surname,
+                        email = cleanEmail,
+                        passwordHash = hash,
+                        salt = salt,
+                        profilePictureUrl = avatarPath
+                    )
+
+                    scope.launch {
+                        // 1. Register locally in Room & Repository
+                        repository.registerUser(newUser)
+                        // 2. Immediately reflect on Firebase Realtime Database
+                        try {
+                            realtimeDbManager.saveUser(newUser)
+                            Log.d("AuthScreen", "User successfully registered and synced to Firebase Realtime Database")
+                        } catch (e: Exception) {
+                            Log.e("AuthScreen", "Failed to sync registered user to Firebase Realtime Database", e)
+                        }
+
+                        errorMessage = null
+                        onAuthSuccess(newUser.name, newUser.surname, newUser.email, bitmap)
+                    }
                 },
                 onSsoClick = {
                     ssoManager.signInWithGoogle(object : SsoManager.SsoCallback {
                         override fun onSuccess(user: SsoUser) {
                             errorMessage = null
+                            scope.launch {
+                                val ssoUserEntity = UserEntity(
+                                    id = user.id,
+                                    name = user.name,
+                                    email = user.email.trim().lowercase()
+                                )
+                                repository.registerUser(ssoUserEntity)
+                                try {
+                                    realtimeDbManager.saveUser(ssoUserEntity)
+                                } catch (e: Exception) {
+                                    Log.e("AuthScreen", "Failed to sync SSO user to Realtime DB", e)
+                                }
+                            }
                             onAuthSuccess(user.name, "", user.email, null)
                         }
                         override fun onError(error: String) {
@@ -105,16 +153,24 @@ fun AuthScreen(onAuthSuccess: (name: String, surname: String, email: String, bit
                     }
 
                     val cleanEmail = email.trim().lowercase()
-                    val foundAccount = registeredAccounts.find { it.email == cleanEmail }
-
-                    if (foundAccount != null && PasswordEncoder.verifyPassword(password, foundAccount.salt, foundAccount.passwordHash)) {
-                        errorMessage = null
-                        onAuthSuccess(foundAccount.name, foundAccount.surname, foundAccount.email, foundAccount.profileBitmap)
-                    } else if (cleanEmail == "student@example.com" || cleanEmail == "demo@studysync.ac.za") {
-                        errorMessage = null
-                        onAuthSuccess("Demo", "Student", cleanEmail, null)
-                    } else {
-                        errorMessage = "Account not found or invalid credentials. Please register first."
+                    scope.launch {
+                        val foundUser = repository.getUserByEmail(cleanEmail)
+                        if (foundUser != null && PasswordEncoder.verifyPassword(password, foundUser.salt, foundUser.passwordHash)) {
+                            errorMessage = null
+                            val loadedBitmap = foundUser.profilePictureUrl?.let { path ->
+                                try {
+                                    if (File(path).exists()) BitmapFactory.decodeFile(path) else null
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            onAuthSuccess(foundUser.name, foundUser.surname, foundUser.email, loadedBitmap)
+                        } else if (cleanEmail == "student@example.com" || cleanEmail == "demo@studysync.ac.za") {
+                            errorMessage = null
+                            onAuthSuccess("Demo", "Student", cleanEmail, null)
+                        } else {
+                            errorMessage = "Account not found or invalid credentials. Please register first."
+                        }
                     }
                 },
                 onSsoClick = {

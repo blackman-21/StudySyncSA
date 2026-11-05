@@ -14,15 +14,23 @@ import java.io.File
  */
 class BlobStorageManager(private val context: Context) {
     private val tag = "BlobStorageManager"
-    private val storage: FirebaseStorage by lazy { FirebaseStorage.getInstance() }
+    private val storage: FirebaseStorage? by lazy {
+        try {
+            FirebaseStorage.getInstance()
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to initialize Firebase Storage", e)
+            null
+        }
+    }
 
     /**
      * Uploads a byte array blob to cloud storage under the specified path.
      * Returns the publicly accessible blob URL on success.
      */
     suspend fun uploadBlob(blobPath: String, data: ByteArray): String? {
+        val st = storage ?: return saveLocalBlob(blobPath.replace("/", "_"), data)
         return try {
-            val storageRef = storage.reference.child(blobPath)
+            val storageRef = st.reference.child(blobPath)
             val uploadTask = storageRef.putBytes(data).await()
             val downloadUrl = uploadTask.storage.downloadUrl.await()
             Log.d(tag, "Blob uploaded successfully: $downloadUrl")

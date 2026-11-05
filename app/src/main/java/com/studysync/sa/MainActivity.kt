@@ -1,8 +1,12 @@
 package com.studysync.sa
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,11 +16,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.room.Room
+import com.google.firebase.messaging.FirebaseMessaging
 import com.studysync.sa.data.local.SessionManager
 import com.studysync.sa.data.local.StudySyncDatabase
 import com.studysync.sa.data.repository.StudySyncRepository
@@ -33,16 +39,40 @@ class MainActivity : ComponentActivity() {
     private lateinit var sessionManager: SessionManager
 
     override fun attachBaseContext(newBase: Context) {
-        val prefs = newBase.getSharedPreferences("study_sync_prefs", Context.MODE_PRIVATE)
-        val lang = prefs.getString("app_language", "English") ?: "English"
-        val langCode = LocaleHelper.getLanguageCode(lang)
-        val localizedContext = LocaleHelper.applyLocale(newBase, langCode)
-        super.attachBaseContext(localizedContext)
+        try {
+            val prefs = newBase.getSharedPreferences("study_sync_settings", Context.MODE_PRIVATE)
+            val lang = prefs.getString("app_language", "English") ?: "English"
+            val langCode = LocaleHelper.getLanguageCode(lang)
+            val localizedContext = LocaleHelper.applyLocale(newBase, langCode)
+            super.attachBaseContext(localizedContext)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error attaching localized context", e)
+            super.attachBaseContext(newBase)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sessionManager = SessionManager(applicationContext)
+
+        // Request runtime notification permission for Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
+        // Retrieve Firebase Cloud Messaging registration token
+        try {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    Log.d("MainActivity", "FCM Registration Token: $token")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("MainActivity", "Failed to retrieve FCM token", e)
+        }
 
         val db = Room.databaseBuilder(
             applicationContext,
@@ -114,13 +144,16 @@ fun MainApp(
     if (showWelcomeScreen) {
         WelcomeScreen(onGetStarted = { showWelcomeScreen = false })
     } else if (!isAuthenticated) {
-        AuthScreen(onAuthSuccess = { name, surname, email, bitmap ->
-            userName = name
-            userSurname = surname
-            userEmail = email
-            if (bitmap != null) userAvatar = bitmap
-            isAuthenticated = true
-        })
+        AuthScreen(
+            repository = repository,
+            onAuthSuccess = { name, surname, email, bitmap ->
+                userName = name
+                userSurname = surname
+                userEmail = email
+                if (bitmap != null) userAvatar = bitmap
+                isAuthenticated = true
+            }
+        )
     } else {
         Scaffold(
             bottomBar = {

@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.studysync.sa" />
-                  <option name="mobileSdkAppId" value="1:123456789012:android:abcdef1234567890" />
-                  <option name="projectId" value="studysync-sa-mock" />
-                  <option name="projectNumber" value="123456789012" />
+                  <option name="mobileSdkAppId" value="1:1079556191427:android:875fc87144014cbdd81e76" />
+                  <option name="projectId" value="stydysync-sa" />
+                  <option name="projectNumber" value="1079556191427" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

@@ -59,11 +59,12 @@ dependencies {
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.firebase.messaging)
     ksp(libs.androidx.room.compiler)
-    
+
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
-    
+
     // Compose Extended Icons
     implementation(libs.androidx.compose.material.icons.extended)
 
@@ -73,6 +74,7 @@ dependencies {
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.firebase.database)
     
     // Networking
     implementation(libs.retrofit)

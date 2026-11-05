@@ -7,7 +7,9 @@ import androidx.work.WorkerParameters
 import com.studysync.sa.data.local.StudySyncDatabase
 import com.studysync.sa.data.local.entity.NoteEntity
 import com.studysync.sa.data.local.entity.TaskEntity
+import com.studysync.sa.data.local.entity.UserEntity
 import com.studysync.sa.data.remote.NoSqlSyncManager
+import com.studysync.sa.data.remote.RealtimeDbManager
 import com.studysync.sa.data.remote.StudySyncApiService
 import com.studysync.sa.data.remote.SyncRequest
 import com.studysync.sa.notification.LocalNotificationManager
@@ -18,15 +20,16 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 
 /**
- * Background worker that synchronizes pending local changes with the remote REST API and NoSQL DB.
+ * Background worker that synchronizes pending local changes with the remote REST API, Cloud Firestore, and Firebase Realtime Database.
  */
 class SyncWorker(
     appContext: Context,
-    params: WorkerParameters
+    params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
 
-    private val TAG = "SyncWorker"
+    private val tag = "SyncWorker"
     private val noSqlSyncManager by lazy { NoSqlSyncManager() }
+    private val realtimeDbManager by lazy { RealtimeDbManager() }
     private val notificationManager by lazy { LocalNotificationManager(applicationContext) }
 
     private val database by lazy {
@@ -52,12 +55,12 @@ class SyncWorker(
     private val jsonFormatter = Json { ignoreUnknownKeys = true }
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "Starting offline sync process...")
+        Log.d(tag, "Starting offline sync process...")
         val dao = database.studySyncDao()
         val pendingOperations = dao.getPendingSyncOperations()
 
         if (pendingOperations.isEmpty()) {
-            Log.d(TAG, "No pending operations to sync.")
+            Log.d(tag, "No pending operations to sync.")
             return Result.success()
         }
 
@@ -75,35 +78,45 @@ class SyncWorker(
 
                 val response = apiService.syncOperation(request)
 
-                // 2. Sync with NoSQL Database Store
+                // 2. Sync with Cloud Firestore & Firebase Realtime Database
                 when (op.entityType) {
                     "TASK" -> {
                         try {
                             val task = jsonFormatter.decodeFromString<TaskEntity>(op.payload)
                             noSqlSyncManager.saveTask(task)
+                            realtimeDbManager.saveTask(task)
                         } catch (e: Exception) {
-                            Log.w(TAG, "NoSQL task sync exception", e)
+                            Log.w(tag, "Task sync exception", e)
                         }
                     }
                     "NOTE" -> {
                         try {
                             val note = jsonFormatter.decodeFromString<NoteEntity>(op.payload)
                             noSqlSyncManager.saveNote(note)
+                            realtimeDbManager.saveNote(note)
                         } catch (e: Exception) {
-                            Log.w(TAG, "NoSQL note sync exception", e)
+                            Log.w(tag, "Note sync exception", e)
+                        }
+                    }
+                    "USER" -> {
+                        try {
+                            val user = jsonFormatter.decodeFromString<UserEntity>(op.payload)
+                            realtimeDbManager.saveUser(user)
+                        } catch (e: Exception) {
+                            Log.w(tag, "User sync exception", e)
                         }
                     }
                 }
 
                 if (response.isSuccessful) {
                     dao.updateSyncOperation(op.copy(status = "SYNCED"))
-                    Log.d(TAG, "Successfully synced operation: ${op.id}")
+                    Log.d(tag, "Successfully synced operation: ${op.id}")
                 } else {
                     dao.updateSyncOperation(op.copy(status = "FAILED"))
                     allSuccessful = false
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error syncing operation ${op.id}", e)
+                Log.e(tag, "Error syncing operation ${op.id}", e)
                 dao.updateSyncOperation(op.copy(status = "FAILED"))
                 allSuccessful = false
             }
@@ -113,7 +126,7 @@ class SyncWorker(
             notificationManager.showNotification(
                 notificationId = 101,
                 title = "Data Synchronized",
-                message = "All offline study changes have been synced with the cloud.",
+                message = "All offline study changes have been synced with Firebase Realtime Database & Cloud.",
                 channelId = LocalNotificationManager.CHANNEL_ID_SYNC
             )
         }

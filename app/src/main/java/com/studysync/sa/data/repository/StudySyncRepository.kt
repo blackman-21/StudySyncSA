@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.*
 import com.studysync.sa.data.local.dao.StudySyncDao
 import com.studysync.sa.data.local.entity.*
+import com.studysync.sa.data.remote.RealtimeDbManager
 import com.studysync.sa.worker.SyncWorker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -19,15 +20,21 @@ open class StudySyncRepository(
     private val context: Context? = null,
     private val dao: StudySyncDao? = null
 ) {
-    private val TAG = "StudySyncRepository"
+    private val tag = "StudySyncRepository"
+    private val realtimeDbManager by lazy { RealtimeDbManager() }
 
     // User Operations
     open suspend fun registerUser(user: UserEntity) {
         try {
             dao?.insertUser(user)
             recordSyncOperation(user.id, "USER", "CREATE", Json.encodeToString(user))
+            try {
+                realtimeDbManager.saveUser(user)
+            } catch (e: Exception) {
+                Log.w(tag, "Realtime DB registration sync exception", e)
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering user", e)
+            Log.e(tag, "Error registering user", e)
         }
     }
 
@@ -35,7 +42,7 @@ open class StudySyncRepository(
         return try {
             dao?.getUserByEmail(email.trim().lowercase())
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user by email", e)
+            Log.e(tag, "Error fetching user by email", e)
             null
         }
     }
@@ -44,8 +51,13 @@ open class StudySyncRepository(
         try {
             dao?.updateUser(user)
             recordSyncOperation(user.id, "USER", "UPDATE", Json.encodeToString(user))
+            try {
+                realtimeDbManager.saveUser(user)
+            } catch (e: Exception) {
+                Log.w(tag, "Realtime DB update user exception", e)
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating user", e)
+            Log.e(tag, "Error updating user", e)
         }
     }
 
@@ -57,7 +69,7 @@ open class StudySyncRepository(
             dao?.insertModule(module)
             recordSyncOperation(module.id, "MODULE", "CREATE", Json.encodeToString(module))
         } catch (e: Exception) {
-            Log.e(TAG, "Error adding module", e)
+            Log.e(tag, "Error adding module", e)
         }
     }
 
@@ -71,7 +83,7 @@ open class StudySyncRepository(
             dao?.insertTask(task)
             recordSyncOperation(task.id, "TASK", "CREATE", Json.encodeToString(task))
         } catch (e: Exception) {
-            Log.e(TAG, "Error adding task", e)
+            Log.e(tag, "Error adding task", e)
         }
     }
 
@@ -80,7 +92,7 @@ open class StudySyncRepository(
             dao?.updateTask(task)
             recordSyncOperation(task.id, "TASK", "UPDATE", Json.encodeToString(task))
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating task", e)
+            Log.e(tag, "Error updating task", e)
         }
     }
 
@@ -89,7 +101,7 @@ open class StudySyncRepository(
             dao?.deleteTask(task)
             recordSyncOperation(task.id, "TASK", "DELETE", Json.encodeToString(task))
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting task", e)
+            Log.e(tag, "Error deleting task", e)
         }
     }
 
@@ -103,7 +115,7 @@ open class StudySyncRepository(
             dao?.insertNote(note)
             recordSyncOperation(note.id, "NOTE", "CREATE", Json.encodeToString(note))
         } catch (e: Exception) {
-            Log.e(TAG, "Error adding note", e)
+            Log.e(tag, "Error adding note", e)
         }
     }
 
@@ -112,7 +124,7 @@ open class StudySyncRepository(
             dao?.deleteNote(note)
             recordSyncOperation(note.id, "NOTE", "DELETE", Json.encodeToString(note))
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting note", e)
+            Log.e(tag, "Error deleting note", e)
         }
     }
 
@@ -128,7 +140,7 @@ open class StudySyncRepository(
             status = "PENDING"
         )
         dao?.insertSyncOperation(operation)
-        Log.d(TAG, "Sync operation recorded: $operationType for $entityType")
+        Log.d(tag, "Sync operation recorded: $operationType for $entityType")
         
         scheduleSync()
     }
@@ -151,7 +163,7 @@ open class StudySyncRepository(
                 syncRequest
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to schedule SyncWorker", e)
+            Log.e(tag, "Failed to schedule SyncWorker", e)
         }
     }
 }

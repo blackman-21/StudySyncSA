@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "studysync-sa-mock",
-    "storage_bucket": "studysync-sa-mock.appspot.com"
+    "project_number": "1079556191427",
+    "project_id": "stydysync-sa",
+    "firebase_url": "https://stydysync-sa-default-rtdb.firebaseio.com",
+    "storage_bucket": "stydysync-sa.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:1079556191427:android:875fc87144014cbdd81e76",
         "android_client_info": {
           "package_name": "com.studysync.sa"
         }
@@ -15,12 +16,12 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyMockKeyMockKeyMockKeyMockKeyMockKey"
+          "current_key": "AIzaSyDxj_CpxigvblD5Hh8PwlH-uPXwPv5BF5o"
         }
       ],
       "services": {
         "appinvite_service": {
-          "status": 1
+          "other_platform_oauth_client": []
         }
       }
     }
