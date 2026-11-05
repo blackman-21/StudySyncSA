@@ -9,7 +9,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.studysync.sa.R
 import com.studysync.sa.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,9 +23,9 @@ fun HomeScreen(taskViewModel: TaskViewModel, userName: String = "Student") {
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     
     val baseGreeting = when (hour) {
-        in 0..11 -> "Good Morning ☀️"
-        in 12..16 -> "Good Afternoon 🌤️"
-        else -> "Good Evening 🌙"
+        in 0..11 -> stringResource(R.string.greeting_morning)
+        in 12..16 -> stringResource(R.string.greeting_afternoon)
+        else -> stringResource(R.string.greeting_evening)
     }
     val greeting = "$baseGreeting, $userName"
 
@@ -42,16 +44,17 @@ fun HomeScreen(taskViewModel: TaskViewModel, userName: String = "Student") {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(greeting, style = MaterialTheme.typography.headlineMedium)
-                Text("Welcome back to your dashboard", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.dashboard_welcome), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = MaterialTheme.shapes.small
             ) {
                 Text(
-                    "Synced",
+                    stringResource(R.string.sync_status_synced),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -87,7 +90,7 @@ fun HomeScreen(taskViewModel: TaskViewModel, userName: String = "Student") {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Section Title
-        Text("Tasks Due Today", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.due_today), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
 
         if (tasks.isEmpty()) {

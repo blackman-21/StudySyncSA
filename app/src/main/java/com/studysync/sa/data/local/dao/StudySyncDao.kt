@@ -13,6 +13,12 @@ interface StudySyncDao {
     @Query("SELECT * FROM users LIMIT 1")
     fun getUser(): Flow<UserEntity?>
 
+    @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
+    suspend fun getUserByEmail(email: String): UserEntity?
+
+    @Update
+    suspend fun updateUser(user: UserEntity)
+
     // Modules
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertModule(module: ModuleEntity)
@@ -45,6 +51,9 @@ interface StudySyncDao {
 
     @Query("SELECT * FROM notes WHERE title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%'")
     fun searchNotes(query: String): Flow<List<NoteEntity>>
+
+    @Delete
+    suspend fun deleteNote(note: NoteEntity)
 
     // Sync Operations
     @Insert(onConflict = OnConflictStrategy.REPLACE)

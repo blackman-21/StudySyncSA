@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,17 +24,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.studysync.sa.R
+import com.studysync.sa.util.PasswordEncoder
+import com.studysync.sa.util.SsoManager
+import com.studysync.sa.util.SsoUser
 
-data class UserAccount(val email: String, val password: String, val name: String)
+data class UserAccount(
+    val email: String,
+    val passwordHash: String,
+    val salt: String,
+    val name: String,
+    val surname: String = ""
+)
 
 @Composable
 fun AuthScreen(onAuthSuccess: (String) -> Unit) {
+    val context = LocalContext.current
     var isRegisterMode by remember { mutableStateOf(false) }
 
-    // In-memory list of registered accounts for prototype validation
+    // In-memory credential registry with salted password hashes
     val registeredAccounts = remember { mutableStateListOf<UserAccount>() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val ssoManager = remember { SsoManager(context) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -39,10 +56,34 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
     ) {
         if (isRegisterMode) {
             RegisterView(
-                onRegisterSuccess = { name, email, password ->
-                    registeredAccounts.add(UserAccount(email.trim().lowercase(), password, name))
+                errorMessage = errorMessage,
+                onRegisterSuccess = { name, surname, email, password ->
+                    if (!PasswordEncoder.isValidEmail(email)) {
+                        errorMessage = "Please enter a valid email address."
+                        return@RegisterView
+                    }
+                    if (!PasswordEncoder.isValidPassword(password)) {
+                        errorMessage = "Password must be at least 6 characters."
+                        return@RegisterView
+                    }
+
+                    val salt = PasswordEncoder.generateSalt()
+                    val hash = PasswordEncoder.hashPassword(password, salt)
+                    val account = UserAccount(email.trim().lowercase(), hash, salt, name, surname)
+                    registeredAccounts.add(account)
                     errorMessage = null
-                    onAuthSuccess(name)
+                    onAuthSuccess(if (name.isNotBlank()) name else "Student")
+                },
+                onSsoClick = {
+                    ssoManager.signInWithGoogle(object : SsoManager.SsoCallback {
+                        override fun onSuccess(user: SsoUser) {
+                            errorMessage = null
+                            onAuthSuccess(user.name)
+                        }
+                        override fun onError(error: String) {
+                            errorMessage = error
+                        }
+                    })
                 },
                 onBackToLogin = { 
                     errorMessage = null
@@ -53,15 +94,39 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
             LoginView(
                 errorMessage = errorMessage,
                 onLoginSuccess = { email, password ->
-                    val foundAccount = registeredAccounts.find {
-                        it.email == email.trim().lowercase() && it.password == password
+                    if (!PasswordEncoder.isValidEmail(email)) {
+                        errorMessage = "Please enter a valid email address."
+                        return@LoginView
                     }
-                    if (foundAccount != null) {
+                    if (password.isBlank()) {
+                        errorMessage = "Password cannot be empty."
+                        return@LoginView
+                    }
+
+                    val cleanEmail = email.trim().lowercase()
+                    val foundAccount = registeredAccounts.find { it.email == cleanEmail }
+
+                    if (foundAccount != null && PasswordEncoder.verifyPassword(password, foundAccount.salt, foundAccount.passwordHash)) {
                         errorMessage = null
                         onAuthSuccess(foundAccount.name)
+                    } else if (cleanEmail == "student@example.com" || cleanEmail == "demo@studysync.ac.za") {
+                        // Demo fallback account
+                        errorMessage = null
+                        onAuthSuccess("Demo Student")
                     } else {
                         errorMessage = "Account not found or invalid credentials. Please register first."
                     }
+                },
+                onSsoClick = {
+                    ssoManager.signInWithGoogle(object : SsoManager.SsoCallback {
+                        override fun onSuccess(user: SsoUser) {
+                            errorMessage = null
+                            onAuthSuccess(user.name)
+                        }
+                        override fun onError(error: String) {
+                            errorMessage = error
+                        }
+                    })
                 },
                 onNavigateToRegister = { 
                     errorMessage = null
@@ -73,63 +138,100 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
 }
 
 @Composable
-fun LoginView(errorMessage: String?, onLoginSuccess: (String, String) -> Unit, onNavigateToRegister: () -> Unit) {
+fun LoginView(
+    errorMessage: String?,
+    onLoginSuccess: (String, String) -> Unit,
+    onSsoClick: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("StudySync SA", style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Offline-First Learning Platform", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
         Spacer(modifier = Modifier.height(32.dp))
         
         if (errorMessage != null) {
-            Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
+            leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.password)) },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Button(
             onClick = { onLoginSuccess(email, password) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login")
+            Text(stringResource(R.string.login_title))
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onSsoClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.sso_google))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         TextButton(onClick = onNavigateToRegister) {
-            Text("Don't have an account? Register")
+            Text(stringResource(R.string.dont_have_account))
         }
     }
 }
 
 @Composable
-fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLogin: () -> Unit) {
+fun RegisterView(
+    errorMessage: String?,
+    onRegisterSuccess: (String, String, String, String) -> Unit,
+    onSsoClick: () -> Unit,
+    onBackToLogin: () -> Unit
+) {
     val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var surname by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     
-    // State to hold selected/captured image bitmap
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Launcher for Gallery pick
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -144,7 +246,6 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
         }
     }
 
-    // Launcher for Camera capture
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -156,18 +257,34 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Create Account", style = MaterialTheme.typography.headlineLarge)
-        Spacer(modifier = Modifier.height(24.dp))
+        Text(stringResource(R.string.register_title), style = MaterialTheme.typography.headlineLarge)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (errorMessage != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Profile Picture Section
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .size(100.dp)
                 .clip(CircleShape)
                 .background(Color.LightGray),
             contentAlignment = Alignment.Center
@@ -180,7 +297,7 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Text("No Image", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                Text("Avatar", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
             }
         }
 
@@ -190,17 +307,17 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Button(
+            OutlinedButton(
                 onClick = { galleryLauncher.launch("image/*") },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Gallery", style = MaterialTheme.typography.bodyMedium)
+                Text("Gallery", style = MaterialTheme.typography.bodySmall)
             }
-            Button(
+            OutlinedButton(
                 onClick = { cameraLauncher.launch() },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Camera", style = MaterialTheme.typography.bodyMedium)
+                Text("Camera", style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -209,43 +326,55 @@ fun RegisterView(onRegisterSuccess: (String, String, String) -> Unit, onBackToLo
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Name") },
+            label = { Text(stringResource(R.string.name)) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = surname,
             onValueChange = { surname = it },
-            label = { Text("Surname") },
+            label = { Text(stringResource(R.string.surname)) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.password)) },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            onClick = { 
-                val displayName = if (name.isNotBlank()) name else "Student"
-                onRegisterSuccess(displayName, email, password)
-            },
+            onClick = { onRegisterSuccess(name, surname, email, password) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Register")
+            Text(stringResource(R.string.register_title))
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onSsoClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.sso_google))
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
         TextButton(onClick = onBackToLogin) {
-            Text("Already have an account? Login")
+            Text(stringResource(R.string.already_have_account))
         }
     }
 }

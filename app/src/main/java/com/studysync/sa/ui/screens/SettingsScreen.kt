@@ -21,19 +21,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.studysync.sa.R
+import com.studysync.sa.data.remote.BlobStorageManager
+import com.studysync.sa.notification.LocalNotificationManager
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     currentTheme: String,
+    currentLanguage: String,
     onThemeChange: (String) -> Unit,
+    onLanguageChange: (String) -> Unit,
     onSyncNow: () -> Unit,
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val blobStorageManager = remember { BlobStorageManager(context) }
+    val notificationManager = remember { LocalNotificationManager(context) }
+
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var selectedLanguage by remember { mutableStateOf("English") }
-    val languages = listOf("English", "isiXhosa", "Afrikaans")
+    val languages = listOf("English", "isiZulu", "Afrikaans", "isiXhosa")
     var langExpanded by remember { mutableStateOf(false) }
     var themeExpanded by remember { mutableStateOf(false) }
     val themes = listOf("System", "Light", "Dark")
@@ -52,7 +62,15 @@ fun SettingsScreen(
         uri?.let {
             try {
                 context.contentResolver.openInputStream(it).use { inputStream ->
-                    profileBitmap = BitmapFactory.decodeStream(inputStream)
+                    val bmp = BitmapFactory.decodeStream(inputStream)
+                    profileBitmap = bmp
+                    if (bmp != null) {
+                        val bytes = blobStorageManager.bitmapToBytes(bmp)
+                        blobStorageManager.saveLocalBlob("profile_avatar.jpg", bytes)
+                        scope.launch {
+                            blobStorageManager.uploadBlob("avatars/user_avatar.jpg", bytes)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -63,8 +81,13 @@ fun SettingsScreen(
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            profileBitmap = it
+        bitmap?.let { bmp ->
+            profileBitmap = bmp
+            val bytes = blobStorageManager.bitmapToBytes(bmp)
+            blobStorageManager.saveLocalBlob("profile_avatar.jpg", bytes)
+            scope.launch {
+                blobStorageManager.uploadBlob("avatars/user_avatar.jpg", bytes)
+            }
         }
     }
 
@@ -74,7 +97,7 @@ fun SettingsScreen(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.nav_settings), style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(24.dp))
 
         // Profile Section
@@ -83,7 +106,7 @@ fun SettingsScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Profile", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.profile), style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
@@ -105,7 +128,7 @@ fun SettingsScreen(
                                 contentScale = ContentScale.Crop
                             )
                         } else {
-                            Text("No Image", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                            Text("Avatar", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
                         }
                     }
 
@@ -119,11 +142,11 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Button(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Gallery", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Gallery Blob", style = MaterialTheme.typography.bodySmall)
                             }
-                            Button(onClick = { cameraLauncher.launch() }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Camera", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = { cameraLauncher.launch() }, modifier = Modifier.fillMaxWidth()) {
+                                Text("Camera Blob", style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -135,21 +158,24 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Name") },
+                        label = { Text(stringResource(R.string.name)) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = surname,
                         onValueChange = { surname = it },
-                        label = { Text("Surname") },
+                        label = { Text(stringResource(R.string.surname)) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.email)) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -175,11 +201,11 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // App Theme Selector
-        Text("Appearance", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Box {
             OutlinedButton(onClick = { themeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Theme: $currentTheme")
+                Text("${stringResource(R.string.theme)}: $currentTheme")
             }
             DropdownMenu(expanded = themeExpanded, onDismissRequest = { themeExpanded = false }) {
                 themes.forEach { theme ->
@@ -201,7 +227,7 @@ fun SettingsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Enable Notifications")
+            Text(stringResource(R.string.enable_notifications))
             Switch(checked = notificationsEnabled, onCheckedChange = { notificationsEnabled = it })
         }
 
@@ -209,14 +235,14 @@ fun SettingsScreen(
 
         Box {
             OutlinedButton(onClick = { langExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Language: $selectedLanguage")
+                Text("${stringResource(R.string.language)}: $currentLanguage")
             }
             DropdownMenu(expanded = langExpanded, onDismissRequest = { langExpanded = false }) {
                 languages.forEach { lang ->
                     DropdownMenuItem(
                         text = { Text(lang) },
                         onClick = {
-                            selectedLanguage = lang
+                            onLanguageChange(lang)
                             langExpanded = false
                         }
                     )
@@ -227,10 +253,18 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = onSyncNow,
+            onClick = {
+                onSyncNow()
+                notificationManager.showNotification(
+                    notificationId = 202,
+                    title = "Sync Initiated",
+                    message = "Background synchronization with REST API & NoSQL database started.",
+                    channelId = LocalNotificationManager.CHANNEL_ID_SYNC
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Sync Now")
+            Text(stringResource(R.string.sync_now))
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -240,7 +274,7 @@ fun SettingsScreen(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
-            Text("Log Out")
+            Text(stringResource(R.string.log_out))
         }
     }
 }

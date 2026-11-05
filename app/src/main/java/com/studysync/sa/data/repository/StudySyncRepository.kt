@@ -7,25 +7,54 @@ import com.studysync.sa.data.local.dao.StudySyncDao
 import com.studysync.sa.data.local.entity.*
 import com.studysync.sa.worker.SyncWorker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.TimeUnit
 
 /**
- * Repository responsible for data operations, implementing an offline-first strategy.
+ * Repository responsible for data operations, implementing an offline-first strategy with Room and SyncWorker.
  */
-class StudySyncRepository(
-    private val context: Context,
-    private val dao: StudySyncDao
+open class StudySyncRepository(
+    private val context: Context? = null,
+    private val dao: StudySyncDao? = null
 ) {
     private val TAG = "StudySyncRepository"
 
-    // Modules
-    fun getAllModules(): Flow<List<ModuleEntity>> = dao.getAllModules()
-
-    suspend fun addModule(module: ModuleEntity) {
+    // User Operations
+    open suspend fun registerUser(user: UserEntity) {
         try {
-            dao.insertModule(module)
+            dao?.insertUser(user)
+            recordSyncOperation(user.id, "USER", "CREATE", Json.encodeToString(user))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering user", e)
+        }
+    }
+
+    open suspend fun getUserByEmail(email: String): UserEntity? {
+        return try {
+            dao?.getUserByEmail(email.trim().lowercase())
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user by email", e)
+            null
+        }
+    }
+
+    open suspend fun updateUser(user: UserEntity) {
+        try {
+            dao?.updateUser(user)
+            recordSyncOperation(user.id, "USER", "UPDATE", Json.encodeToString(user))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating user", e)
+        }
+    }
+
+    // Modules
+    open fun getAllModules(): Flow<List<ModuleEntity>> = dao?.getAllModules() ?: emptyFlow()
+
+    open suspend fun addModule(module: ModuleEntity) {
+        try {
+            dao?.insertModule(module)
             recordSyncOperation(module.id, "MODULE", "CREATE", Json.encodeToString(module))
         } catch (e: Exception) {
             Log.e(TAG, "Error adding module", e)
@@ -33,39 +62,57 @@ class StudySyncRepository(
     }
 
     // Tasks
-    fun getAllTasks(): Flow<List<TaskEntity>> = dao.getAllTasks()
+    open fun getAllTasks(): Flow<List<TaskEntity>> = dao?.getAllTasks() ?: emptyFlow()
     
-    fun getTasksByModule(moduleId: String): Flow<List<TaskEntity>> = dao.getTasksByModule(moduleId)
+    open fun getTasksByModule(moduleId: String): Flow<List<TaskEntity>> = dao?.getTasksByModule(moduleId) ?: emptyFlow()
 
-    suspend fun addTask(task: TaskEntity) {
+    open suspend fun addTask(task: TaskEntity) {
         try {
-            dao.insertTask(task)
+            dao?.insertTask(task)
             recordSyncOperation(task.id, "TASK", "CREATE", Json.encodeToString(task))
         } catch (e: Exception) {
             Log.e(TAG, "Error adding task", e)
         }
     }
 
-    suspend fun updateTask(task: TaskEntity) {
+    open suspend fun updateTask(task: TaskEntity) {
         try {
-            dao.updateTask(task)
+            dao?.updateTask(task)
             recordSyncOperation(task.id, "TASK", "UPDATE", Json.encodeToString(task))
         } catch (e: Exception) {
             Log.e(TAG, "Error updating task", e)
         }
     }
 
-    // Notes
-    fun getAllNotes(): Flow<List<NoteEntity>> = dao.getAllNotes()
-    
-    fun searchNotes(query: String): Flow<List<NoteEntity>> = dao.searchNotes(query)
-
-    suspend fun addNote(note: NoteEntity) {
+    open suspend fun deleteTask(task: TaskEntity) {
         try {
-            dao.insertNote(note)
+            dao?.deleteTask(task)
+            recordSyncOperation(task.id, "TASK", "DELETE", Json.encodeToString(task))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting task", e)
+        }
+    }
+
+    // Notes
+    open fun getAllNotes(): Flow<List<NoteEntity>> = dao?.getAllNotes() ?: emptyFlow()
+    
+    open fun searchNotes(query: String): Flow<List<NoteEntity>> = dao?.searchNotes(query) ?: emptyFlow()
+
+    open suspend fun addNote(note: NoteEntity) {
+        try {
+            dao?.insertNote(note)
             recordSyncOperation(note.id, "NOTE", "CREATE", Json.encodeToString(note))
         } catch (e: Exception) {
             Log.e(TAG, "Error adding note", e)
+        }
+    }
+
+    open suspend fun deleteNote(note: NoteEntity) {
+        try {
+            dao?.deleteNote(note)
+            recordSyncOperation(note.id, "NOTE", "DELETE", Json.encodeToString(note))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting note", e)
         }
     }
 
@@ -80,26 +127,31 @@ class StudySyncRepository(
             payload = payload,
             status = "PENDING"
         )
-        dao.insertSyncOperation(operation)
+        dao?.insertSyncOperation(operation)
         Log.d(TAG, "Sync operation recorded: $operationType for $entityType")
         
         scheduleSync()
     }
 
-    fun scheduleSync() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+    open fun scheduleSync() {
+        if (context == null) return
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
 
-        val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
-            .setConstraints(constraints)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
-            .build()
+            val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                .build()
 
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            "SyncWork",
-            ExistingWorkPolicy.REPLACE,
-            syncRequest
-        )
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "SyncWork",
+                ExistingWorkPolicy.REPLACE,
+                syncRequest
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to schedule SyncWorker", e)
+        }
     }
 }

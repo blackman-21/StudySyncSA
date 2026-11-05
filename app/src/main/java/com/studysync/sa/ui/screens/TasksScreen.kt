@@ -9,7 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.studysync.sa.R
 import com.studysync.sa.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -23,17 +25,26 @@ fun TasksScreen(taskViewModel: TaskViewModel) {
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Text("My Tasks", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.my_tasks), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tasks) { task ->
-                    DetailedTaskItem(task = task, onCheckedChange = { taskViewModel.toggleTaskCompletion(task) })
+            if (tasks.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No tasks found. Tap + to add a study task!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(tasks) { task ->
+                        DetailedTaskItem(task = task, onCheckedChange = { taskViewModel.toggleTaskCompletion(task) })
+                    }
                 }
             }
         }
@@ -42,45 +53,55 @@ fun TasksScreen(taskViewModel: TaskViewModel) {
     if (showAddDialog) {
         var title by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
-        var dueDateString by remember { mutableStateOf("") } // e.g. YYYY-MM-DD or simple text entry
+        var dueDateString by remember { mutableStateOf("") }
+        var inputError by remember { mutableStateOf<String?>(null) }
 
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Add New Task") },
+            title = { Text(stringResource(R.string.add_task)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (inputError != null) {
+                        Text(inputError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text("Task Title") },
+                        label = { Text(stringResource(R.string.task_title)) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text("Task Description") },
+                        label = { Text(stringResource(R.string.task_description)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = dueDateString,
                         onValueChange = { dueDateString = it },
-                        label = { Text("Due Date (e.g., YYYY-MM-DD)") },
+                        label = { Text("${stringResource(R.string.due_date)} (e.g., 2025-11-30)") },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
                 Button(onClick = {
+                    if (title.isBlank()) {
+                        inputError = "Task title cannot be empty."
+                        return@Button
+                    }
                     val parsedTime = try {
                         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        format.parse(dueDateString)?.time ?: System.currentTimeMillis()
+                        format.parse(dueDateString)?.time ?: (System.currentTimeMillis() + 86400000L)
                     } catch (e: Exception) {
-                        System.currentTimeMillis()
+                        System.currentTimeMillis() + 86400000L
                     }
-                    taskViewModel.addTask(title, description, "module_id", parsedTime, 1)
+                    taskViewModel.addTask(title, description, "module_1", parsedTime, 1)
                     showAddDialog = false
                 }) {
-                    Text("Add")
+                    Text("Add Task")
                 }
             },
             dismissButton = {

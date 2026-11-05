@@ -64,10 +64,15 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
     
+    // Compose Extended Icons
+    implementation(libs.androidx.compose.material.icons.extended)
+
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.storage.ktx)
     
     // Networking
     implementation(libs.retrofit)

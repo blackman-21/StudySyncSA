@@ -1,21 +1,38 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# StudySync SA ProGuard / R8 Rules for Play Store Release
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve line numbers and source file names for Crashlytics / Debugging
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Room Database Keep Rules
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.paging.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Kotlinx Serialization
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    *** Companion;
+}
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+
+# Retrofit & OkHttp
+-keepclassmembers class * {
+    @retrofit2.http.** <methods>;
+}
+-dontwarn retrofit2.**
+-dontwarn okhttp3.**
+
+# Firebase Services (Auth, Messaging, Firestore, Storage)
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# WorkManager
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# Android Security Crypto
+-keep class androidx.security.crypto.** { *; }

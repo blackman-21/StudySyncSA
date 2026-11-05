@@ -5,8 +5,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.studysync.sa.R
 
 @Composable
 fun WelcomeScreen(onGetStarted: () -> Unit) {
@@ -22,14 +24,14 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Welcome to StudySync SA 🎓",
+                text = "${stringResource(R.string.welcome_title)} 🎓",
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Your ultimate student companion for organizing study notes, managing daily tasks, and synchronizing progress seamlessly.",
+                text = stringResource(R.string.welcome_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
@@ -43,7 +45,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
                 ),
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
-                Text(text = "Get Started", style = MaterialTheme.typography.titleMedium)
+                Text(text = stringResource(R.string.welcome_get_started), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

@@ -13,7 +13,7 @@ import com.studysync.sa.data.local.entity.*
         NoteEntity::class,
         SyncOperationEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class StudySyncDatabase : RoomDatabase() {

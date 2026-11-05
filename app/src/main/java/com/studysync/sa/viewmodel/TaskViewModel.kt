@@ -16,7 +16,7 @@ import java.util.UUID
 class TaskViewModel(private val repository: StudySyncRepository) : ViewModel() {
 
     val allTasks: StateFlow<List<TaskEntity>> = repository.getAllTasks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun addTask(title: String, description: String, moduleId: String, dueAt: Long, priority: Int) {
         if (title.isBlank()) return
