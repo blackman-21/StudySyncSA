@@ -13,7 +13,7 @@ import java.io.File
  * Enables uploading note image attachments, study material documents, and user profile pictures.
  */
 class BlobStorageManager(private val context: Context) {
-    private val TAG = "BlobStorageManager"
+    private val tag = "BlobStorageManager"
     private val storage: FirebaseStorage by lazy { FirebaseStorage.getInstance() }
 
     /**
@@ -25,11 +25,10 @@ class BlobStorageManager(private val context: Context) {
             val storageRef = storage.reference.child(blobPath)
             val uploadTask = storageRef.putBytes(data).await()
             val downloadUrl = uploadTask.storage.downloadUrl.await()
-            Log.d(TAG, "Blob uploaded successfully: ${downloadUrl}")
+            Log.d(tag, "Blob uploaded successfully: $downloadUrl")
             downloadUrl.toString()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to upload blob to cloud storage. Fallback to local storage path.", e)
-            // Local fallback store for offline / un-configured Firebase environments
+            Log.e(tag, "Failed to upload blob to cloud storage. Fallback to local storage path.", e)
             saveLocalBlob(blobPath.replace("/", "_"), data)
         }
     }
@@ -50,10 +49,10 @@ class BlobStorageManager(private val context: Context) {
         return try {
             val file = File(context.filesDir, fileName)
             file.writeBytes(data)
-            Log.d(TAG, "Local blob stored at: ${file.absolutePath}")
+            Log.d(tag, "Local blob stored at: ${file.absolutePath}")
             file.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to write local blob", e)
+            Log.e(tag, "Failed to write local blob", e)
             ""
         }
     }

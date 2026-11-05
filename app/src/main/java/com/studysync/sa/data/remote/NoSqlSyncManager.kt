@@ -12,7 +12,7 @@ import kotlinx.coroutines.tasks.await
  * Provides methods to store and read app data (Tasks, Notes, User Profile) from NoSQL.
  */
 class NoSqlSyncManager {
-    private val TAG = "NoSqlSyncManager"
+    private val tag = "NoSqlSyncManager"
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     /**
@@ -32,10 +32,10 @@ class NoSqlSyncManager {
             )
             firestore.collection("tasks").document(task.id)
                 .set(taskMap, SetOptions.merge()).await()
-            Log.d(TAG, "Successfully saved task ${task.id} to NoSQL DB")
+            Log.d(tag, "Successfully saved task ${task.id} to NoSQL DB")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving task ${task.id} to NoSQL DB", e)
+            Log.e(tag, "Error saving task ${task.id} to NoSQL DB", e)
             false
         }
     }
@@ -57,7 +57,7 @@ class NoSqlSyncManager {
                 TaskEntity(id, moduleId, title, description, dueAt, priority, completed)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching tasks from NoSQL DB", e)
+            Log.e(tag, "Error fetching tasks from NoSQL DB", e)
             emptyList()
         }
     }
@@ -77,10 +77,10 @@ class NoSqlSyncManager {
             )
             firestore.collection("notes").document(note.id)
                 .set(noteMap, SetOptions.merge()).await()
-            Log.d(TAG, "Successfully saved note ${note.id} to NoSQL DB")
+            Log.d(tag, "Successfully saved note ${note.id} to NoSQL DB")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving note ${note.id} to NoSQL DB", e)
+            Log.e(tag, "Error saving note ${note.id} to NoSQL DB", e)
             false
         }
     }
@@ -108,7 +108,7 @@ class NoSqlSyncManager {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching notes from NoSQL DB", e)
+            Log.e(tag, "Error fetching notes from NoSQL DB", e)
             emptyList()
         }
     }

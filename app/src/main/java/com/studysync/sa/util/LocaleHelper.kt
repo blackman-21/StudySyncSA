@@ -2,7 +2,6 @@ package com.studysync.sa.util
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import android.os.LocaleList
 import java.util.Locale
 
@@ -13,19 +12,15 @@ object LocaleHelper {
 
     fun applyLocale(context: Context, languageCode: String): Context {
         val locale = when (languageCode.lowercase()) {
-            "isizulu", "zu" -> Locale("zu")
-            "afrikaans", "af" -> Locale("af")
-            "isixhosa", "xh" -> Locale("xh")
-            else -> Locale("en")
+            "isizulu", "zu" -> Locale.Builder().setLanguage("zu").build()
+            "afrikaans", "af" -> Locale.Builder().setLanguage("af").build()
+            "isixhosa", "xh" -> Locale.Builder().setLanguage("xh").build()
+            else -> Locale.Builder().setLanguage("en").build()
         }
         Locale.setDefault(locale)
 
-        val config = Configuration(context.resources.configuration)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            config.setLocales(LocaleList(locale))
-        } else {
-            @Suppress("DEPRECATION")
-            config.locale = locale
+        val config = Configuration(context.resources.configuration).apply {
+            setLocales(LocaleList(locale))
         }
 
         return context.createConfigurationContext(config)

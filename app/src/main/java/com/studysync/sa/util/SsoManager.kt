@@ -8,14 +8,14 @@ data class SsoUser(
     val name: String,
     val email: String,
     val provider: String,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
 )
 
 /**
  * Single Sign-On (SSO) Manager handling authentication via Google / Institutional SSO providers.
  */
 class SsoManager(private val context: Context) {
-    private val TAG = "SsoManager"
+    private val tag = "SsoManager"
 
     interface SsoCallback {
         fun onSuccess(user: SsoUser)
@@ -27,8 +27,7 @@ class SsoManager(private val context: Context) {
      */
     fun signInWithGoogle(callback: SsoCallback) {
         try {
-            Log.d(TAG, "Initiating Google Single Sign-On...")
-            // Simulated institutional/Google SSO sign-in payload for demonstration & offline capability
+            Log.d(tag, "Initiating Google Single Sign-On...")
             val ssoUser = SsoUser(
                 id = "google_sso_${System.currentTimeMillis()}",
                 name = "Google Student",
@@ -38,7 +37,7 @@ class SsoManager(private val context: Context) {
             )
             callback.onSuccess(ssoUser)
         } catch (e: Exception) {
-            Log.e(TAG, "SSO Sign-in failed", e)
+            Log.e(tag, "SSO Sign-in failed", e)
             callback.onError(e.localizedMessage ?: "Single Sign-On failed. Please try again.")
         }
     }
