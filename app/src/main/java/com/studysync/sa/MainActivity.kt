@@ -1,6 +1,7 @@
 package com.studysync.sa
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -103,13 +104,21 @@ fun MainApp(
 
     var showWelcomeScreen by remember { mutableStateOf(true) }
     var isAuthenticated by remember { mutableStateOf(false) }
+
+    // User profile state saved upon registration / login
     var userName by remember { mutableStateOf("Student") }
+    var userSurname by remember { mutableStateOf("") }
+    var userEmail by remember { mutableStateOf("student@example.com") }
+    var userAvatar by remember { mutableStateOf<Bitmap?>(null) }
 
     if (showWelcomeScreen) {
         WelcomeScreen(onGetStarted = { showWelcomeScreen = false })
     } else if (!isAuthenticated) {
-        AuthScreen(onAuthSuccess = { name ->
+        AuthScreen(onAuthSuccess = { name, surname, email, bitmap ->
             userName = name
+            userSurname = surname
+            userEmail = email
+            if (bitmap != null) userAvatar = bitmap
             isAuthenticated = true
         })
     } else {
@@ -150,10 +159,20 @@ fun MainApp(
                 composable(Screen.Notes.route) { NotesScreen(noteViewModel) }
                 composable(Screen.Settings.route) { 
                     SettingsScreen(
+                        initialName = userName,
+                        initialSurname = userSurname,
+                        initialEmail = userEmail,
+                        initialAvatar = userAvatar,
                         currentTheme = currentTheme,
                         currentLanguage = currentLanguage,
                         onThemeChange = onThemeChange,
                         onLanguageChange = onLanguageChange,
+                        onProfileUpdate = { newName, newSurname, newEmail, newBitmap ->
+                            userName = newName
+                            userSurname = newSurname
+                            userEmail = newEmail
+                            userAvatar = newBitmap
+                        },
                         onSyncNow = { repository.scheduleSync() },
                         onLogout = { isAuthenticated = false }
                     )

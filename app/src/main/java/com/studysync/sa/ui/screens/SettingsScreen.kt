@@ -30,10 +30,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
+    initialName: String,
+    initialSurname: String,
+    initialEmail: String,
+    initialAvatar: Bitmap?,
     currentTheme: String,
     currentLanguage: String,
     onThemeChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
+    onProfileUpdate: (String, String, String, Bitmap?) -> Unit,
     onSyncNow: () -> Unit,
     onLogout: () -> Unit = {}
 ) {
@@ -48,12 +53,12 @@ fun SettingsScreen(
     var themeExpanded by remember { mutableStateOf(false) }
     val themes = listOf("System", "Light", "Dark")
 
-    // Profile States
+    // Profile States initialized from registered user information
     var isEditingProfile by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("Student") }
-    var surname by remember { mutableStateOf("Name") }
-    var email by remember { mutableStateOf("student@example.com") }
-    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var name by remember { mutableStateOf(initialName) }
+    var surname by remember { mutableStateOf(initialSurname) }
+    var email by remember { mutableStateOf(initialEmail) }
+    var profileBitmap by remember { mutableStateOf<Bitmap?>(initialAvatar) }
 
     // Launchers for image capture/selection
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -134,8 +139,8 @@ fun SettingsScreen(
 
                     if (!isEditingProfile) {
                         Column {
-                            Text("$name $surname", style = MaterialTheme.typography.bodyLarge)
-                            Text(email, style = MaterialTheme.typography.bodySmall)
+                            Text("$name $surname".trim().ifEmpty { "Student" }, style = MaterialTheme.typography.bodyLarge)
+                            Text(email.ifEmpty { "student@example.com" }, style = MaterialTheme.typography.bodySmall)
                         }
                     } else {
                         Column(
@@ -180,7 +185,10 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { isEditingProfile = false },
+                        onClick = {
+                            isEditingProfile = false
+                            onProfileUpdate(name, surname, email, profileBitmap)
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Save Changes")

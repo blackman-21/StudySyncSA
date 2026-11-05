@@ -37,11 +37,12 @@ data class UserAccount(
     val passwordHash: String,
     val salt: String,
     val name: String,
-    val surname: String = ""
+    val surname: String = "",
+    val profileBitmap: Bitmap? = null
 )
 
 @Composable
-fun AuthScreen(onAuthSuccess: (String) -> Unit) {
+fun AuthScreen(onAuthSuccess: (name: String, surname: String, email: String, bitmap: Bitmap?) -> Unit) {
     val context = LocalContext.current
     var isRegisterMode by remember { mutableStateOf(false) }
 
@@ -57,7 +58,7 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
         if (isRegisterMode) {
             RegisterView(
                 errorMessage = errorMessage,
-                onRegisterSuccess = { name, surname, email, password ->
+                onRegisterSuccess = { name, surname, email, password, bitmap ->
                     if (!PasswordEncoder.isValidEmail(email)) {
                         errorMessage = "Please enter a valid email address."
                         return@RegisterView
@@ -69,16 +70,16 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
 
                     val salt = PasswordEncoder.generateSalt()
                     val hash = PasswordEncoder.hashPassword(password, salt)
-                    val account = UserAccount(email.trim().lowercase(), hash, salt, name, surname)
+                    val account = UserAccount(email.trim().lowercase(), hash, salt, name, surname, bitmap)
                     registeredAccounts.add(account)
                     errorMessage = null
-                    onAuthSuccess(if (name.isNotBlank()) name else "Student")
+                    onAuthSuccess(if (name.isNotBlank()) name else "Student", surname, email, bitmap)
                 },
                 onSsoClick = {
                     ssoManager.signInWithGoogle(object : SsoManager.SsoCallback {
                         override fun onSuccess(user: SsoUser) {
                             errorMessage = null
-                            onAuthSuccess(user.name)
+                            onAuthSuccess(user.name, "", user.email, null)
                         }
                         override fun onError(error: String) {
                             errorMessage = error
@@ -108,11 +109,10 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
 
                     if (foundAccount != null && PasswordEncoder.verifyPassword(password, foundAccount.salt, foundAccount.passwordHash)) {
                         errorMessage = null
-                        onAuthSuccess(foundAccount.name)
+                        onAuthSuccess(foundAccount.name, foundAccount.surname, foundAccount.email, foundAccount.profileBitmap)
                     } else if (cleanEmail == "student@example.com" || cleanEmail == "demo@studysync.ac.za") {
-                        // Demo fallback account
                         errorMessage = null
-                        onAuthSuccess("Demo Student")
+                        onAuthSuccess("Demo", "Student", cleanEmail, null)
                     } else {
                         errorMessage = "Account not found or invalid credentials. Please register first."
                     }
@@ -121,7 +121,7 @@ fun AuthScreen(onAuthSuccess: (String) -> Unit) {
                     ssoManager.signInWithGoogle(object : SsoManager.SsoCallback {
                         override fun onSuccess(user: SsoUser) {
                             errorMessage = null
-                            onAuthSuccess(user.name)
+                            onAuthSuccess(user.name, "", user.email, null)
                         }
                         override fun onError(error: String) {
                             errorMessage = error
@@ -220,7 +220,7 @@ fun LoginView(
 @Composable
 fun RegisterView(
     errorMessage: String?,
-    onRegisterSuccess: (String, String, String, String) -> Unit,
+    onRegisterSuccess: (name: String, surname: String, email: String, password: String, bitmap: Bitmap?) -> Unit,
     onSsoClick: () -> Unit,
     onBackToLogin: () -> Unit
 ) {
@@ -358,7 +358,7 @@ fun RegisterView(
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            onClick = { onRegisterSuccess(name, surname, email, password) },
+            onClick = { onRegisterSuccess(name, surname, email, password, profileBitmap) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.register_title))
