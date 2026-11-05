@@ -28,22 +28,24 @@ fun WelcomeScreen(onGetStarted: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Icon safely rendered using Vector Foreground over primary background
+            // App Logo on Get Started screen (displays app_logo.png / app icon)
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(130.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                    contentDescription = "App Launcher Icon",
-                    modifier = Modifier.size(80.dp)
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = "App Logo",
+                    modifier = Modifier
+                        .size(130.dp)
+                        .clip(CircleShape)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // App Name underneath the icon
             Text(
