@@ -1,5 +1,7 @@
 package com.studysync.sa.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.studysync.sa.R
 import com.studysync.sa.data.local.entity.UserEntity
 import com.studysync.sa.data.remote.BlobStorageManager
@@ -310,6 +313,18 @@ fun RegisterView(
         }
     }
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                cameraLauncher.launch()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -370,7 +385,18 @@ fun RegisterView(
                 Text("Gallery", style = MaterialTheme.typography.bodySmall)
             }
             OutlinedButton(
-                onClick = { cameraLauncher.launch() },
+                onClick = {
+                    val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                    if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            cameraLauncher.launch()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    } else {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
                 modifier = Modifier.weight(1f)
             ) {
                 Text("Camera", style = MaterialTheme.typography.bodySmall)

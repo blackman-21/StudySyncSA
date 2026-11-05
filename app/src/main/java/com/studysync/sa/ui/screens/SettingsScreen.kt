@@ -1,5 +1,7 @@
 package com.studysync.sa.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -23,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.studysync.sa.R
 import com.studysync.sa.data.remote.BlobStorageManager
 import com.studysync.sa.notification.LocalNotificationManager
@@ -96,6 +99,18 @@ fun SettingsScreen(
         }
     }
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                cameraLauncher.launch()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -150,7 +165,21 @@ fun SettingsScreen(
                             OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
                                 Text("Gallery Blob", style = MaterialTheme.typography.bodySmall)
                             }
-                            OutlinedButton(onClick = { cameraLauncher.launch() }, modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = {
+                                    val permissionCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                                    if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                                        try {
+                                            cameraLauncher.launch()
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
+                                    } else {
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Text("Camera Blob", style = MaterialTheme.typography.bodySmall)
                             }
                         }
