@@ -1,0 +1,56 @@
+<resources>
+    <string name="app_name">StudySync SA</string>
+    <string name="welcome_title">StudySync SA</string>
+    <string name="welcome_subtitle">Ukuxhobisa abafundi baseMzantsi Afrika ngezixhobo zokufunda ezingaxhunyaniswanga kwi-intanethi nohambelano olungenasiphako.</string>
+    <string name="welcome_get_started">Qala Ngoku</string>
+
+    <string name="greeting_morning">Molo ☀️</string>
+    <string name="greeting_afternoon">Molweni 🌤️</string>
+    <string name="greeting_evening">Rhatya 🌙</string>
+    <string name="dashboard_welcome">Wamkelekile kwakhona kwi-dashboard yakho</string>
+
+    <string name="nav_home">Ikhaya</string>
+    <string name="nav_tasks">Imisebenzi</string>
+    <string name="nav_notes">Amanqaku</string>
+    <string name="nav_settings">Iisetingi</string>
+
+    <string name="login_title">Ngena</string>
+    <string name="register_title">Cala I-akhawunti</string>
+    <string name="email">I-imeyile</string>
+    <string name="password">Igama lokungena</string>
+    <string name="name">Igama</string>
+    <string name="surname">Ifani</string>
+    <string name="sso_google">Ngena nge-Google (SSO)</string>
+    <string name="dont_have_account">Awunayo i-akhawunti? Bhalisa</string>
+    <string name="already_have_account">Unayo kale i-akhawunti? Ngena</string>
+
+    <string name="my_tasks">Imisebenzi Yami</string>
+    <string name="add_task">Faka Umsebenzi Omtsha</string>
+    <string name="task_title">Isihloko Somsebenzi</string>
+    <string name="task_description">Inkcazelo Somsebenzi</string>
+    <string name="due_date">Umhla Wokugqibela</string>
+    <string name="due_today">Imisebenzi Yanamhlanje</string>
+
+    <string name="study_notes">Amanqaku Okufunda</string>
+    <string name="add_note">Faka Inqaku</string>
+    <string name="note_title">Isihloko</string>
+    <string name="note_body">Izoqukethwe</string>
+    <string name="search_notes">Khangela amanqaku...</string>
+
+    <string name="profile">Iprofayile</string>
+    <string name="appearance">Imbonakalo</string>
+    <string name="theme">Isihloko</string>
+    <string name="enable_notifications">Vula Izaziso</string>
+    <string name="language">Ulwimi</string>
+    <string name="sync_now">Hambelanisa Ngoku</string>
+    <string name="log_out">Phuma</string>
+
+    <string name="lang_en">English</string>
+    <string name="lang_zu">isiZulu</string>
+    <string name="lang_af">Afrikaans</string>
+    <string name="lang_xh">isiXhosa</string>
+
+    <string name="sync_status_synced">Kuhambelanisiwe</string>
+    <string name="sync_status_pending">Iyahambelanisa...</string>
+    <string name="sync_status_failed">Ezingaxhunyaniswanga (Kwasendaweni)</string>
+</resources>
