@@ -33,7 +33,7 @@ class SessionManager(context: Context) {
     }
 
     fun getLanguage(): String {
-        return sharedPreferences.getString("app_language", "en") ?: "en"
+        return sharedPreferences.getString("app_language", "English") ?: "English"
     }
 
     fun clearSession() {
